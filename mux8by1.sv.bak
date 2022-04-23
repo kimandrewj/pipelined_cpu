@@ -1,0 +1,11 @@
+module mux8by1(out, ins, sel);
+    input logic [7:0] ins;
+    input logic [2:0] sel;
+    output logic out;
+    logic [1:0] out0;
+
+    mux4by1 mux0(.out(out0[0]), .ins(ins[3:0]), .sel(sel[1:0]));
+    mux4by1 mux1(.out(out0[1]), .ins(ins[7:4]), .sel(sel[1:0]));
+    mux2by1 fin (.out(out), .ins(out0), .sel(sel[2]));
+	 
+endmodule

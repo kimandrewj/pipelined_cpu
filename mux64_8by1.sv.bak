@@ -1,0 +1,15 @@
+module mux64_8by1 (out, ins, sel);
+	input logic [63:0] [7:0] ins;
+	input logic [2:0] sel;
+	output logic [63:0] out;
+	
+	logic [63:0] [1:0] out0;
+	
+	generate
+		for (genvar x = 0; x < 64; x++) begin
+			mux4by1 mux0(.out(out0[x][0]), .ins(ins[x][3:0]), .sel(sel[1:0]));
+			mux4by1 mux1(.out(out0[x][1]), .ins(ins[x][7:4]), .sel(sel[1:0]));
+			mux2by1 fin (.out(out[x]), .ins(out0[x]), .sel(sel[2]));
+		end
+	endgenerate
+endmodule 

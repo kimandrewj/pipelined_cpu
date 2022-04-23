@@ -1,0 +1,3 @@
+module resultB (A, B);
+
+	input

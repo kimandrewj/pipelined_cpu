@@ -1,0 +1,9 @@
+module D_FF_enabled (q, d, reset, clk, enabler);   
+	output reg q; 
+	input d, reset, clk, enabler; 
+	logic enabledInput; 
+	
+	and firstAnd(enabledInput, enabler,d);
+	
+	D_FF doubleFlip (.q(q), .d(enabledInput), .reset(reset), .clk(clk),)
+endmodule 

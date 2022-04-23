@@ -1,0 +1,11 @@
+module update1bit(dataIn, dataOut, clk, reset);
+	input logic dataIn;
+	output logic dataOut;
+	input logic clk, reset;
+	
+	
+	logic tempIn;
+
+	mux2_1 inmux (.out(tempIn[x]), .i0(dataIn[x]), .i1(0), .sel(reset));
+	D_FF instrcutionDFF (.q(dataOut[x]), .d(tempIn[x]), .reset(reset), .clk(clk));
+endmodule 

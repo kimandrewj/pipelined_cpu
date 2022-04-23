@@ -1,0 +1,10 @@
+module lab4 (HEX0, HEX1, KEY, LEDR, SW); 
+	output logic [1:0] HEX0, HEX1;
+	output logic [9:0] LEDR;
+	input logic [3:0] KEY; 
+	input logic [7:0] SW;
+	
+	seg7 a1(SW[3:0], HEX0)
+	seg7 a2(SW[7:4], HEX1)
+end module
+

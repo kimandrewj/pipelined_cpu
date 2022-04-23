@@ -1,0 +1,5 @@
+module signExtend26(out, in);
+	
+	out[25:0] = in;
+	out[63:26] = in[25];
+endmodule

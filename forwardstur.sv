@@ -1,0 +1,43 @@
+`timescale 1ns/10ps
+module forwardstur (out, Db2, Db3, Db4, check2, check3, check4, regLoc, dataLoc3, dataLoc4);
+	input logic [4:0] regLoc, dataLoc4, dataLoc3;
+	input logic [63:0] Db2, Db3, Db4;
+	input logic [10:0] check2, check3, check4;
+	output logic [63:0] out;
+	// this forwarding is specifically for stur
+	// same concept as other forwarding except it only has one stage to forward
+	
+	//x31
+	logic x31temp, x31;
+	and #0.05 x31gate(x31temp, regLoc[4], regLoc[3], regLoc[2], regLoc[1], regLoc[0]);
+	not #0.05 x31notgate(x31, x31temp);
+	
+	logic controlReg;
+	and #0.05 gate21 (controlReg, x31, check2[9]);
+	
+	logic control4, control3, control4temp, control3temp;
+	or #0.05 gate41 (control4temp, check4[0], check4[1], check4[2], check4[6], check4[7]);
+	or #0.05 gate42 (control4, control4temp, check4[8], check4[10]);
+	or #0.05 gate31 (control3temp, check3[0], check3[1], check3[2], check3[6], check3[7]);
+	or #0.05 gate32 (control3, control3temp, check3[8], check3[10]);
+	
+	logic [4:0] compare3;
+	logic forward3; //if location is same for 4
+	xnor #0.05 gatecompare31 (compare3[0], regLoc[0], dataLoc3[0]);
+	xnor #0.05 gatecompare32 (compare3[1], regLoc[1], dataLoc3[1]);
+	xnor #0.05 gatecompare33 (compare3[2], regLoc[2], dataLoc3[2]);
+	xnor #0.05 gatecompare34 (compare3[3], regLoc[3], dataLoc3[3]);
+	xnor #0.05 gatecompare35 (compare3[4], regLoc[4], dataLoc3[4]);
+	and  #0.05 gateequal31   (forward3, compare3[0], compare3[1], compare3[2], compare3[3],compare3[4]);
+	
+	logic if3;
+	and  #0.05 ifgate3  (if3, forward3, control3, controlReg);
+	logic [63:0] tempOut;
+	
+	generate 
+		for( genvar x = 0; x < 64; x++) begin
+			mux2_1 inmux1 (.out(out[x]), .i0(Db2[x]), .i1(Db3[x]), .sel(if3)); // forward
+		end
+	endgenerate
+	
+endmodule 

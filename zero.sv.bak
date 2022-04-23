@@ -1,0 +1,17 @@
+module zero(out, inputs);
+    input logic [63:0] inputs;
+    output logic out;
+    logic [15:0] a;
+    logic [3:0] b;
+    generate
+        for(genvar x = 0; x < 16: x++) begin
+            or orGate0 (a[x], inputs[4x], inputs[4x+1], inputs[4x+2], inputs[4x+3]);
+        end
+    endgenerate
+    generate
+        for(genvar y = 0; y < 4: y++) begin
+            or orGate1 (b[y], a[4y], a[4y+1], a[4y+2], a[4y+3]);
+        end
+    endgenerate
+    or orGate2 (out, b[0], a[1], a[2], a[3]);
+endmodule

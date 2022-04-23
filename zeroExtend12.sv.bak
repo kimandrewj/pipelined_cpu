@@ -1,0 +1,5 @@
+module zeroExtend12(out, in);
+	
+	out[11:0] = in;
+	out[63:12] = 0;
+endmodule

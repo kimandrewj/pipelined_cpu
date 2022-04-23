@@ -1,0 +1,12 @@
+module regmux2by1(out, inp1, inp2, sel);
+   output out;
+   input inp1, inp2, sel;
+
+   logic out1, out2, notSel;
+
+   not (notSel, sel);
+   and (out1, inp1, sel);
+	and(out2, inp2, notSel);
+   or (out, out1, out2);
+
+endmodule

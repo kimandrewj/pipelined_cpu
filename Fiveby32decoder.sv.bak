@@ -1,0 +1,32 @@
+module Fiveby32decoder (in, out, enabler) ;
+	output logic [7:0] out;
+	input logic [2:0] in;
+	input enabler;
+
+	and firstAnd(out[0], in[0], in[1], in[2], enabler);
+	and secondAnd(out[1], in[0], in[1], ~in[2], enabler);
+	and thirdAnd(out[2], in[0], ~in[1], in[2], enabler);
+	and fourAnd(out[3], in[0], ~in[1], ~in[2], enabler);
+	and fiveAnd(out[4], ~in[0], in[1], in[2], enabler);
+	and sixAnd(out[5], ~in[0], in[1], ~in[2], enabler);
+	and sevenAnd(out[6], ~in[0], ~in[1], in[2], enabler);
+	and eightAnd(out[7], ~in[0], ~in[1], ~in[2], enabler);
+
+endmodule
+
+module threeBy8decoder_testbench();
+	logic [7:0] out;
+	logic [2:0] in;
+	logic enabler;
+	
+	threeBy8decoder dut (.in, .out, .enabler);
+	
+	initial begin
+		integer i;
+		enabler = 1;
+		for(i = 0; i < 8; i++) begin
+			in = i;
+			#10;
+		end
+	end
+endmodule 

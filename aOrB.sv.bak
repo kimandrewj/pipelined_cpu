@@ -1,0 +1,25 @@
+module aOrB (A, B, out, zero, overflow, carryOut, negative);
+	input logic [63:0] A, B;
+	output logic [63:0] out;
+	output logic zero, overflow, carryOut, negative;
+	
+	assign overflow = 1'b0;
+	assign carryOut = 1'b0;
+	
+	generate
+		for (genvar x = 0; x < 64; x++) begin
+			or orGate (out[x], A[x], B[x]);
+		end
+	endgenerate
+	
+	assign negative = out[63];
+	
+	genvar i = 0;
+	
+	generate
+		for (genvar x = 0; x < 64; x++) begin
+			or orGate (i, i, out[x]);
+		end
+	endgenerate
+	assign zero = i;
+endmodule 

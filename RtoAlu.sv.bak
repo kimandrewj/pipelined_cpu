@@ -1,0 +1,13 @@
+module RtoAlu(AluB, AluOp, Da, oAluB, oAluOp, oDa, clk, reset,);
+	output logic [63:0] AluB, Da;
+	output logic [2:0] AluOp;
+	input logic clk, reset;
+	input logic [63:0] oAluB, oDa;
+	input logic [2:0] oAluOp;
+	
+	always_ff @(posedge clk) begin
+		AluB <= oAluB;
+		Da <= oDA;
+		AluOp <= oAluOp;
+	end
+endmodule 

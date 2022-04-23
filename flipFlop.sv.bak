@@ -1,0 +1,4 @@
+module flipFlop (clk, reset, SW, LEDR);
+	input  logic  clk, reset;
+	input logic [1:0] SW;
+	output logic [2:0] LEDR;

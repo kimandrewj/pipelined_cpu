@@ -1,0 +1,22 @@
+module addition (A, B, out, zero, overflow, carryOut, negative);
+	input logic [63:0] A, B;
+	output logic [63:0] out;
+	output logic zero, overflow, carryOut, negative;
+	
+	assign overflow = 0;
+	assign carryOut = 0;
+	
+	
+	genvar i = 0;
+	
+	generate
+		for (genvar x = 0; i < 64; i++) begin
+			assign out[x] = B[x];
+			or orGate (i, i, B[x]);
+		end
+	endgenerate
+	
+	assign negative = B[63];
+	
+	assign zero = i;
+endmodule

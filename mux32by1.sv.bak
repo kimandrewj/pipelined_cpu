@@ -1,0 +1,13 @@
+module mux32by1 (in, out, selecter);
+	input logic[31:0] in;
+	output logic out;
+	input logic[4:0] selecter;
+	
+	and firstAnd(out[7], in[0], in[1], in[2], enabler);
+	and secondAnd(out[6], in[0], in[1], ~in[2], enabler);
+	and thirdAnd(out[5], in[0], ~in[1], in[2], enabler);
+	and fourAnd(out[4], in[0], ~in[1], ~in[2], enabler);
+	and fiveAnd(out[3], ~in[0], in[1], in[2], enabler);
+	and sixAnd(out[2], ~in[0], in[1], ~in[2], enabler);
+	and sevenAnd(out[1], ~in[0], ~in[1], in[2], enabler);
+	and eightAnd(out[0], ~in[0], ~in[1], ~in[2], enabler);

@@ -1,0 +1,203 @@
+`timescale 1ns/10ps
+module CPU_pipelined( clk, reset);
+	input logic clk, reset;
+	//declaring variables 
+	logic [63:0] address;
+	logic [31:0] instruction0, instruction1, instruction2, instruction3, instruction4;
+	logic [10:0] check0, check1, check2, check3, check4; 
+	logic brTaken;
+	logic [63:0] branchTo;
+	logic [63:0] aluResult3, aluResult4, aluResult5;
+	logic [63:0] Da2, Da3, Db2, Db3, Db4;
+	logic blt, cbz, tempblt;
+	logic negative, zero, overflow, carry_out; //flags
+	logic flagControl, flagControlTemp; 
+	logic tempN, tempZ, tempO, tempC;
+	logic [63:0] forwardOut4;
+	logic [63:0] notlsrResult5;
+	logic [63:0] ALUinput1, ALUinput2;
+	//determing branches for blt, B, cbz
+	logic usedO, usedN;
+	mux2_1 omuxgate(.out(usedO), .i0(overflow), .i1(tempO), .sel(flagControl));
+	mux2_1 Nmuxgate(.out(usedN), .i0(negative), .i1(tempN), .sel(flagControl));
+	xor #0.05 bltgate (tempblt, usedO, usedN);
+	and #0.05 bltand (blt, tempblt, check1[4]);
+	logic zerocbzcase;
+	logic [63:0] cbzdataIn;
+	forwardcbz forwardingcbz ( .out(cbzdataIn), .Db2(Db2), .Db3(aluResult3), .Db4(aluResult4), .check2(check1), .check3(check2), 
+		.check4(check3), .regLoc(instruction1[4:0]), .dataLoc3(instruction2[4:0]), .dataLoc4(instruction3[4:0]));
+	zeroCase asdad (.out(zerocbzcase), .inputs(cbzdataIn)); //use zero flag #fix it later
+	and #0.05 cbzand (cbz, zerocbzcase, check1[5]);
+	or #0.05 brControl (brTaken, check1[3], blt, cbz);
+	//stage 1: get the instruction and decode it
+	updateAddress getAddress (.out(address), .clk(clk), .reset(reset), .checkB(check1[3]), .brTaken(brTaken), .instruction(instruction1)); //updates the PC counter
+	instructmem getInstruction (.address(address), .instruction(instruction0), .clk(clk));
+	instructionDecoder decodeInstruct (.instruction(instruction0), .check(check0));
+	//updates the instruction and check to the right pipelined
+	updateInstructionandCheck upd1 (.in(instruction0), .inC(check0), .out(instruction1), .outC(check1), .clk(clk), .reset(reset));
+	updateInstructionandCheck upd2 (.in(instruction1), .inC(check1), .out(instruction2), .outC(check2), .clk(clk), .reset(reset));
+	updateInstructionandCheck upd3 (.in(instruction2), .inC(check2), .out(instruction3), .outC(check3), .clk(clk), .reset(reset));
+	updateInstructionandCheck upd4 (.in(instruction3), .inC(check3), .out(instruction4), .outC(check4), .clk(clk), .reset(reset));
+	//newaddress = address <<2 or IMM26<<2 or Imm19<<2
+
+	// number represents each stage
+	
+	//stage 2:get the registers
+	//inputs/ouptus to register
+	logic [4:0] Rd2, Rd3, Rd4, Rd5, Rm, Rn, Aa, Ab;
+	logic Reg2Loc;
+	//register input logic
+	assign Rn = instruction1[9:5];
+	assign Aa = Rn;
+	or #0.05 reg2Locgate (Reg2Loc, check1[9], check1[5]);
+	assign Rd2 = instruction1[4:0];
+	assign Rm = instruction1[20:16];
+	//forward all the Rd logic here
+	update5bit up52 (.dataIn(Rd2), .dataOut(Rd3), .clk(clk), .reset(reset));
+	update5bit up53 (.dataIn(Rd3), .dataOut(Rd4), .clk(clk), .reset(reset));
+	update5bit up54 (.dataIn(Rd4), .dataOut(Rd5), .clk(clk), .reset(reset));
+	generate
+		for(genvar x = 0; x < 5; x++) begin
+				//determine inputs to register
+			mux2_1 regMux (.out(Ab[x]), .i0(Rm[x]), .i1(Rd2[x]), .sel(Reg2Loc));	
+		end
+	endgenerate
+	
+	//figureOut value for Da and Db after the register gets the Da2 to Da3
+	updateDaAndDb updateDaDb (.oldDa(Da2), .oldDb(Db2), .Da(Da3), .Db(Db3), .clk(clk), .reset(reset));
+	//determine inputs for ALU
+	//stage 3
+	logic [63:0] Imm12, Imm9, signZero, aluB;
+	logic aluBsel, alusrc;
+	assign aluBsel = check2[0];
+	or #0.05 aluorGateB (alusrc, check2[0], check2[7], check2[9]);
+	//creates the Imm12 and Imm9
+	zeroExtend12 zero12 (Imm12, instruction2[21:10]);	//sets Imm12
+	signExtend9 sign9	 (Imm9, instruction2[20:12]); //sets Imm9
+	
+	//figure out imm12 and Imm9 and which one to use
+	generate
+		for(genvar x=0; x < 64; x++) begin
+			//determine inputs to register
+			mux2_1 alumux (.out(signZero[x]), .i0(Imm9[x]), .i1(Imm12[x]), .sel(aluBsel));	
+		end
+	endgenerate
+	//dettermines the input B for ALU
+	generate
+		for(genvar x=0; x < 64; x++) begin
+			//determine inputs to register
+			mux2_1 alumux (.out(aluB[x]), .i0(Db3[x]), .i1(signZero[x]), .sel(alusrc));	
+		end
+	endgenerate
+
+	//stage 3:execute the command in ALU
+	logic [2:0] ALUcontrol;
+	logic [5:0] shifterD;
+	logic [63:0] rdResult;
+	logic [63:0] lsrResult4, lsrResult3, bad;
+	assign shifterD = instruction2[15:10];
+	
+
+	shifter shift (.value(ALUinput1), .direction(1'b1), .distance(shifterD), .result(lsrResult3)); //shifts the LSR
+	//addi check3 -> 1,0 ,0, 0 ....
+	assign ALUcontrol[0] = check2[10]; // subs
+	logic tempalu1;
+	//determining the ALU selector
+	or #0.05 aluorgate1 (tempalu1, check2[2], check2[5]);
+	not #0.05 notalugate (ALUcontrol[1] , tempalu1); //sets alu[1]
+	or #0.05 oralugate2 (ALUcontrol[2] , check2[2], check2[6]);
+	//using ALU
+	
+	// regular forwarding for most of cases
+	normForwardAa aAmodule(.out(ALUinput1), .regLoc(instruction2[9:5]), .dataIn3(Da3), .dataIn4(forwardOut4), .dataIn5(notlsrResult5), .dataLoc4(Rd4),
+		.dataLoc5(Rd5), .check3(check2), .check4(check3), .check5(check4), .clk(clk), .reset(reset));
+	normForwardAb Abmodule2 (.out(ALUinput2), .regLoc(instruction2[20:16]), .dataIn3(aluB), .dataIn4(forwardOut4), .dataIn5(notlsrResult5), .dataLoc4(Rd4),
+		.dataLoc5(Rd5), .check3(check2), .check4(check3), .check5(check4), .clk(clk), .reset(reset));
+	alu aluModule(.A(ALUinput1), .B(ALUinput2), .cntrl(ALUcontrol), .result(aluResult3), .negative(tempN), .zero(tempZ), .overflow(tempO), .carry_out(tempC));
+	
+	//determines if flags should be updated or not
+	or #0.05 flagorgate (flagControlTemp, check1[1], check1[10]);
+	// keep track of flag  control
+	update1bit flagforward(.dataIn(flagControlTemp), .dataOut(flagControl), .clk(clk), .reset(reset));
+	//setting the flags
+	D_FF_enabled flagN (.q(negative), .d1(negative), .d(tempN), .reset(reset), .clk(clk), .enabler(flagControl)); 
+	D_FF_enabled flagZ (.q(zero), .d1(zero), .d(tempZ), .reset(reset), .clk(clk), .enabler(flagControl)); 
+	D_FF_enabled flagO (.q(overflow), .d1(overflow), .d(tempO), .reset(reset), .clk(clk), .enabler(flagControl)); 
+	D_FF_enabled flagC (.q(carry_out), .d1(carry_out), .d(tempC), .reset(reset), .clk(clk), .enabler(flagControl)); 
+	
+	//forward data into the data Memory: Db and aluresult
+	updateDaAndDb updateAluandDb (.oldDa(aluResult3), .oldDb(Db3), .Da(aluResult4), .Db(Db4), .clk(clk), .reset(reset)); //doesnt use Da
+	updateDaAndDb updatelsrResult (.oldDa(lsrResult3), .oldDb(0), .Da(lsrResult4), .Db(bad), .clk(clk), .reset(reset)); //doesnt use Da
+	generate 
+		for( genvar x = 0; x < 64; x++) begin
+			mux2_1 forwardMux (.out(forwardOut4[x]), .i0(aluResult4[x]), .i1(lsrResult4[x]), .sel(check3[8]));
+		end
+	endgenerate
+	//stage 4: write it to data Memory
+	logic checkStore, checkLoad;
+	assign checkStore = check3[9];
+	assign checkLoad = check3 [7]; 
+	logic [63:0] memOut4, lsrResult5, meminput;
+	// forward specific case for store
+	forwardstur forwardingstore (.out(meminput), .Db2(Db4), .Db3(aluResult5), .Db4('1), 
+		.check2(check3), .check3(check4), .check4('0), .regLoc(instruction3[4:0]), .dataLoc3(instruction4[4:0]), .dataLoc4('1));
+		
+	datamem data (.address(aluResult4), .write_enable(checkStore), .read_enable(checkLoad), .write_data(meminput), .clk(clk), .xfer_size(8), 
+		.read_data(memOut4));
+	
+	//forward data into the writeback stage
+	logic [63:0] memOut5;
+	// keep track of data of lsr and alu result
+	updateDaAndDb updatelsrResult1 (.oldDa(lsrResult4), .oldDb(0), .Da(lsrResult5), .Db(bad), .clk(clk), .reset(reset));
+	updateDaAndDb update4to5 (.oldDa(aluResult4), .oldDb(memOut4), .Da(aluResult5), .Db(memOut5), .clk(clk), .reset(reset)); //doesnt use Da
+
+	//stage 5: Write back
+	logic WrEn, WrEntemp, checkupload;
+	or #0.05 writeRegEn0 (WrEntemp, check4[0], check4[1], check4[6], check4[7], check4[8]);
+	or #0.05 writeRegEn1 (WrEn, WrEntemp, check4[2], check4[10]);
+	assign checkupload = check4[7];
+	
+	generate
+		for(genvar x=0; x < 64; x++) begin
+			//determine inputs to register
+			mux2_1 resultMux (.out(notlsrResult5[x]), .i0(aluResult5[x]), .i1(memOut5[x]), .sel(checkupload));	
+		end
+	endgenerate	
+	
+	
+	generate
+		for(genvar x=0; x < 64; x++) begin
+			//determine inputs to register
+			mux2_1 resultMux (.out(rdResult[x]), .i0(notlsrResult5[x]), .i1(lsrResult5[x]), .sel(check4[8]));	
+		end
+	endgenerate	
+	//determing the DW
+	logic [4:0] Aw;
+	assign Aw = instruction4[4:0];
+	//Regfile logic
+	//reading at stage 2/wrtting at stage 5
+	logic notclk;
+	not #0.05 badclock (notclk, clk); // inversing the clock
+	regfile Regfile(.ReadData1(Da2), .ReadData2(Db2), .WriteData(rdResult), .ReadRegister1(Aa), .ReadRegister2(Ab), 
+		.WriteRegister(Aw), .RegWrite(WrEn), .clk(notclk));	
+		
+endmodule
+
+module CPU_pipe_testbench();
+	logic clk, reset;
+	CPU_pipelined dut (clk, reset);
+	
+	parameter ClockDelay = 125;
+	initial begin // Set up the clock
+		clk <= 0;
+		forever #(ClockDelay/2) clk <= ~clk;
+	end
+	
+	initial begin
+		reset = 1;
+		#125;
+		reset = 0;
+		//test 11 and 12 use 650000
+		#200000;
+	end
+endmodule 

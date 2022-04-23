@@ -1,0 +1,3 @@
+module LFSR (clk, reset, L1, L9, L, R, winner, restart); 
+
+endmodule

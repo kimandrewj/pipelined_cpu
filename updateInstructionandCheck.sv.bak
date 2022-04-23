@@ -1,0 +1,16 @@
+module updateInstructionandCheck(in, inC, out, outC clk, reset);
+	input logic [31:0] in;
+	output logic [31:0] out;
+	input logic clk, reset;
+	input logic [10:0] inc;
+	output logic [10:0]
+	always_ff @(posedge clk) begin
+	if (reset) begin
+		out <= 0;
+		outC <= 0;
+	end
+	else begin
+		out <= in;
+		outC <= inC;
+	end
+endmodule 

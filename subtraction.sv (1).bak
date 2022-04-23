@@ -1,0 +1,37 @@
+module subtraction (A, B, out, zero, overflow, carryOut, negative);
+	input logic [63:0] A, B;
+	output logic [63:0] out;
+	output logic zero, overflow, carryOut, negative;
+	
+	logic carryO, carryI, c;
+	
+	
+	xor xorGate (out[0], A[0], B[0]); 
+	and andGate (c, A[0], B[0]);
+	
+	generate
+		for (genvar x = 1; x < 64; x++) begin
+			xor xorGate1 (out[x], A[x], B[x], c); 
+			and andGate1 (c, A[x], B[x]);
+		end
+	endgenerate
+
+	
+	genvar i = 0;
+	
+	generate
+		for (genvar x = 0; x < 64; x++) begin
+			or orGate (i, i, out[x]);
+		end
+	endgenerate
+	
+	and andGate2 (carryI, A[62], B[62]);
+	and andGate3 (carryO, A[63], B[63]);
+	
+	xor xorGate2 (overflow, carryI, carryO);
+	assign negative = out[63];
+	
+	assign carryOut = carryI;
+	
+	assign zero = i;
+endmodule

@@ -1,0 +1,13 @@
+module CPU(clk);
+	input logic clk;
+	logic [63:0] address;
+	logic [31:0] instruction;
+	logic [10:0] check; 
+	
+	instructionmem getInstruction (.address(address), .instruction(instruction), .clk(clk));
+	
+endmodule
+
+module CPU_testbench();
+	
+endmodule 

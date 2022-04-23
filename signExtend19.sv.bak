@@ -1,0 +1,5 @@
+module signExtend19(out, in);
+	
+	out[18:0] = in;
+	out[63:19] = in[18];
+endmodule
